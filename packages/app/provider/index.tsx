@@ -1,28 +1,20 @@
-import { useColorScheme } from 'react-native'
-import {
-  CustomToast,
-  TamaguiProvider,
-  type TamaguiProviderProps,
-  ToastProvider,
-  config,
-  isWeb,
-} from '@xxii-ventures/ui'
 import { ToastViewport } from './toast-viewport'
+import type { ReactNode } from 'react'
+import { Platform } from 'react-native'
+import { NavigationProvider } from './navigation'
+import { TamaguiProvider } from './tamagui'
 
-export const Provider = ({ children, ...rest }: Omit<TamaguiProviderProps, 'config'>) => {
-  const colorScheme = useColorScheme()
+type ProviderProps = {
+  children: ReactNode
+}
 
+export const Provider = ({ children }: ProviderProps) => {
   return (
-    <TamaguiProvider
-      config={config}
-      defaultTheme={colorScheme === 'dark' ? 'dark' : 'light'}
-      {...rest}
-    >
-      <ToastProvider swipeDirection="horizontal" duration={6000} native={isWeb ? [] : ['mobile']}>
+    <TamaguiProvider>
+      <NavigationProvider>
         {children}
-        <CustomToast />
         <ToastViewport />
-      </ToastProvider>
+      </NavigationProvider>
     </TamaguiProvider>
   )
 }
