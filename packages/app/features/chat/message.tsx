@@ -1,4 +1,4 @@
-import { Image as TamaguiImage, Paragraph, Stack, YStack, styled } from '@xxii-ventures/ui'
+import { Paragraph, Stack, YStack, styled, SolitoImage } from '@xxii-ventures/ui'
 import { Markdown } from './markdown'
 
 type MessageProps = {
@@ -35,19 +35,23 @@ const MessageContent = styled(YStack, {
   width: '100%',
 })
 
-const MessageImage = styled(TamaguiImage, {
-  width: 200,
-  height: 200,
-  borderRadius: '$4',
-  marginBottom: '$2',
-})
-
 export const Message = ({ content, isUser, attachments }: MessageProps) => {
   return (
     <MessageContainer isUser={isUser}>
       <MessageContent>
         {attachments?.map((attachment, index) => (
-          <MessageImage key={index} source={{ uri: attachment.url }} />
+          <SolitoImage
+            key={index}
+            src={attachment.url}
+            width={200}
+            height={200}
+            alt="Message attachment"
+            resizeMode="cover"
+            style={{
+              borderRadius: 16,
+              marginBottom: 8,
+            }}
+          />
         ))}
         {isUser ? <Paragraph color="$color">{content}</Paragraph> : <Markdown>{content}</Markdown>}
       </MessageContent>

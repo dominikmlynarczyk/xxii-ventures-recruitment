@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { FlatList, Keyboard, Platform, KeyboardAvoidingView } from 'react-native'
-import { Button, H4, Input, Spinner, XStack, YStack, Sheet, styled } from '@xxii-ventures/ui'
-import { Camera, Send, Settings } from '@tamagui/lucide-icons'
-import * as ImagePicker from 'expo-image-picker'
+import { Button, H4, Input, Spinner, XStack, YStack, Sheet, SolitoImage } from '@xxii-ventures/ui'
+import { Camera, Send, Settings, X } from '@tamagui/lucide-icons'
 import { useToast } from '../../hooks/use-toast'
 import { useSafeArea } from '../../provider/safe-area/use-safe-area'
 import { useChat } from '@ai-sdk/react'
@@ -10,6 +9,8 @@ import { httpClient } from '../../utils/http-client'
 import { generateAPIUrl } from '../../utils/api'
 import { Message } from './message'
 import { usePersistedMessages, type ChatMessage } from './use-persisted-messages'
+import { useImagePicker, type ImageAttachment } from './use-image-picker'
+import { useMessagesDedupe } from './use-messages-dedupe'
 
 export const ChatScreen = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
@@ -17,6 +18,9 @@ export const ChatScreen = () => {
   const flatListRef = useRef<FlatList>(null)
   const { top, bottom } = useSafeArea()
   const toast = useToast()
+
+  const [currentAttachment, setCurrentAttachment] = useState<ImageAttachment | null>(null)
+  const { pickImage, isLoading: isImagePickerLoading } = useImagePicker()
 
   const {
     messages,
@@ -38,6 +42,11 @@ export const ChatScreen = () => {
     messages,
     updateMessages: setMessages,
   })
+  useMessagesDedupe({
+    messages,
+    setMessages,
+    status,
+  })
 
   const isLoading = status === 'streaming' || status === 'submitted'
 
@@ -58,22 +67,40 @@ export const ChatScreen = () => {
   const handleSend = async (e?: any) => {
     e?.preventDefault()
 
-    if (!input.trim()) return
+    if (!input.trim() && !currentAttachment) return
 
     Keyboard.dismiss()
+
+    if (currentAttachment) {
+      const newMessage = {
+        id: Date.now().toString(),
+        role: 'user' as const,
+        content: input,
+        attachments: [
+          {
+            type: 'image' as const,
+            url: currentAttachment.previewUri,
+          },
+        ],
+      }
+
+      setMessages((prev) => [...prev, newMessage])
+
+      handleSubmit(e, { data: currentAttachment.uri })
+      setCurrentAttachment(null)
+
+      return
+    }
+
     handleSubmit(e)
   }
 
   const handleAttachImage = async () => {
     try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        quality: 0.8,
-        allowsEditing: true,
-      })
-
-      if (!result.canceled) {
-        toast.info('Image attachments coming soon')
+      const attachment = await pickImage()
+      if (attachment) {
+        setCurrentAttachment(attachment)
+        toast.success('Image attached')
       }
     } catch (error) {
       toast.error('Failed to attach image')
@@ -135,7 +162,7 @@ export const ChatScreen = () => {
           />
         </YStack>
 
-        <XStack
+        <YStack
           p="$4"
           pb={bottomSpacing}
           gap="$2"
@@ -145,36 +172,63 @@ export const ChatScreen = () => {
           {...Platform.select({
             web: {
               position: 'sticky',
-              bottom: 0,
+              bottom: '0.5rem',
+              width: '90%',
+              mx: 'auto',
+              bg: '$backgroundPress',
+              borderRadius: '$8',
             },
             default: {},
           })}
         >
-          <Button
-            icon={Camera}
-            circular
-            variant="outlined"
-            onPress={handleAttachImage}
-            disabled={isLoading}
-          />
-          <Input
-            flex={1}
-            value={input}
-            onChangeText={handleInputChange}
-            placeholder="Type a message..."
-            onSubmitEditing={handleSend}
-            editable={!isLoading}
-            autoCapitalize="none"
-            returnKeyType="send"
-            blurOnSubmit={false}
-          />
-          <Button
-            icon={isLoading ? () => <Spinner /> : Send}
-            circular
-            disabled={!input.trim() || isLoading}
-            onPress={handleSend}
-          />
-        </XStack>
+          {currentAttachment && (
+            <XStack height={100} width="100%" position="relative" p="$2" mb="$4">
+              <SolitoImage
+                src={currentAttachment.previewUri}
+                width={100}
+                height={100}
+                alt="Attachment preview"
+                resizeMode="cover"
+              />
+              <Button
+                position="absolute"
+                icon={X}
+                t={0}
+                r={0}
+                size="$2"
+                circular
+                theme="red"
+                onPress={() => setCurrentAttachment(null)}
+              />
+            </XStack>
+          )}
+          <XStack gap="$2">
+            <Button
+              icon={Camera}
+              circular
+              variant="outlined"
+              onPress={handleAttachImage}
+              disabled={isLoading || isImagePickerLoading}
+            />
+            <Input
+              flex={1}
+              value={input}
+              onChangeText={handleInputChange}
+              placeholder="Type a message..."
+              onSubmitEditing={handleSend}
+              editable={!isLoading}
+              autoCapitalize="none"
+              returnKeyType="send"
+              blurOnSubmit={false}
+            />
+            <Button
+              icon={isLoading ? () => <Spinner /> : Send}
+              circular
+              disabled={(!input.trim() && !currentAttachment) || isLoading}
+              onPress={handleSend}
+            />
+          </XStack>
+        </YStack>
       </YStack>
 
       <Sheet
