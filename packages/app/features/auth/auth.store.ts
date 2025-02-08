@@ -9,6 +9,8 @@ type User = {
 }
 
 type AuthState = {
+  _hasHydrated: boolean
+  setHasHydrated: (state: boolean) => void
   user: User | null
   isAuthenticated: boolean
   isLoading: boolean
@@ -25,6 +27,13 @@ const MOCK_CREDENTIALS = {
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
+      _hasHydrated: false,
+      setHasHydrated: (state) => {
+        set({
+          _hasHydrated: state,
+        })
+      },
+
       user: null,
       isAuthenticated: false,
       isLoading: false,
@@ -69,6 +78,9 @@ export const useAuthStore = create<AuthState>()(
     {
       name: 'auth-storage',
       storage: createJSONStorage(() => storage),
+      onRehydrateStorage: (state) => {
+        return () => state.setHasHydrated(true)
+      },
     }
   )
 )

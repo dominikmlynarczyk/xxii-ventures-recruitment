@@ -5,6 +5,7 @@ import { useAuthStore } from './auth.store'
 import { useToast } from '../../hooks/use-toast'
 import { useSafeArea } from '../../provider/safe-area/use-safe-area'
 import { Image } from '@xxii-ventures/ui'
+import { useShallow } from 'zustand/react/shallow'
 
 export const AuthScreen = () => {
   const router = useRouter()
@@ -14,7 +15,9 @@ export const AuthScreen = () => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
 
-  const { login, isLoading } = useAuthStore()
+  const { login, isLoading } = useAuthStore(
+    useShallow((state) => ({ login: state.login, isLoading: state.isLoading }))
+  )
 
   const handleLogin = async () => {
     try {

@@ -3,10 +3,16 @@ import { useRouter } from 'solito/navigation'
 import { useAuthStore } from '../../features/auth/auth.store'
 import { useRootNavigationState, useSegments } from 'expo-router'
 import type { NavigationProps } from '.'
+import { useShallow } from 'zustand/react/shallow'
 
 export const NavigationProvider: FC<NavigationProps> = ({ children }) => {
   const segments = useSegments()
-  const { isAuthenticated } = useAuthStore()
+  const { isAuthenticated, isAuthStateHydrated } = useAuthStore(
+    useShallow((state) => ({
+      isAuthenticated: state.isAuthenticated,
+      isAuthStateHydrated: state._hasHydrated,
+    }))
+  )
   const navigationState = useRootNavigationState()
   const router = useRouter()
 
@@ -14,6 +20,10 @@ export const NavigationProvider: FC<NavigationProps> = ({ children }) => {
   const isTabsGroup = segments[0] === '(tabs)'
 
   useEffect(() => {
+    if (!isAuthStateHydrated) {
+      return
+    }
+
     if (!navigationState?.key) {
       return
     }

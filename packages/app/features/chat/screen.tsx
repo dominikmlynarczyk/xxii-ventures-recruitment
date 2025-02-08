@@ -1,69 +1,67 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { FlatList, Keyboard, Platform, KeyboardAvoidingView } from 'react-native'
-import {
-  Button,
-  H4,
-  Image,
-  Input,
-  Paragraph,
-  Spinner,
-  XStack,
-  YStack,
-  Sheet,
-} from '@xxii-ventures/ui'
+import { Button, H4, Input, Spinner, XStack, YStack, Sheet, styled } from '@xxii-ventures/ui'
 import { Camera, Send, Settings } from '@tamagui/lucide-icons'
-import { useChatStore } from './chat.store'
 import * as ImagePicker from 'expo-image-picker'
 import { useToast } from '../../hooks/use-toast'
 import { useSafeArea } from '../../provider/safe-area/use-safe-area'
-
-type ChatMessage = {
-  id: string
-  role: 'user' | 'assistant'
-  content: string
-  timestamp: number
-  attachments?: Array<{
-    type: 'image'
-    url: string
-  }>
-}
+import { useChat } from '@ai-sdk/react'
+import { httpClient } from '../../utils/http-client'
+import { generateAPIUrl } from '../../utils/api'
+import { Message } from './message'
+import { usePersistedMessages, type ChatMessage } from './use-persisted-messages'
 
 export const ChatScreen = () => {
-  const [message, setMessage] = useState('')
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [apiKey, setApiKey] = useState('')
   const flatListRef = useRef<FlatList>(null)
   const { top, bottom } = useSafeArea()
+  const toast = useToast()
 
   const {
     messages,
-    isStreaming,
-    sendMessage,
-    apiKey: storedApiKey,
-    setApiKey: setStoredApiKey,
-  } = useChatStore()
+    setMessages,
+    error,
+    handleInputChange: handleAIInputChange,
+    input,
+    handleSubmit,
+    status,
+  } = useChat({
+    fetch: httpClient as unknown as typeof globalThis.fetch,
+    api: generateAPIUrl('/api/chat'),
+    onError: (error) => {
+      console.error(error)
+      toast.error('Failed to send message')
+    },
+  })
+  usePersistedMessages({
+    messages,
+    updateMessages: setMessages,
+  })
 
-  const toast = useToast()
+  const isLoading = status === 'streaming' || status === 'submitted'
+
+  const handleInputChange = (text: string) => {
+    handleAIInputChange({ target: { value: text } } as any)
+  }
 
   const bottomSpacing = Platform.select({
-    ios: bottom - 16,
+    ios: bottom,
     android: bottom + 16,
   })
 
   const topSpacing = Platform.select({
-    ios: top - 16,
+    ios: top,
     android: top,
   })
 
-  const handleSend = async () => {
-    if (!message.trim()) return
+  const handleSend = async (e?: any) => {
+    e?.preventDefault()
+
+    if (!input.trim()) return
 
     Keyboard.dismiss()
-    const currentMessage = message
-    setMessage('')
-
-    await sendMessage(currentMessage)
-    flatListRef.current?.scrollToEnd({ animated: true })
+    handleSubmit(e)
   }
 
   const handleAttachImage = async () => {
@@ -75,50 +73,31 @@ export const ChatScreen = () => {
       })
 
       if (!result.canceled) {
-        // In a real app, we would upload this to a storage service
-        // For now, we'll just use the local URI
-        await sendMessage('', [{ type: 'image', url: result.assets[0].uri }])
+        toast.info('Image attachments coming soon')
       }
     } catch (error) {
       toast.error('Failed to attach image')
     }
   }
 
-  const renderMessage = useCallback(({ item }: { item: ChatMessage }) => {
-    const isUser = item.role === 'user'
-
-    return (
-      <YStack
-        p="$4"
-        my="$2"
-        mx="$4"
-        background={isUser ? '$blue5' : '$gray5'}
-        borderRadius="$4"
-        alignSelf={isUser ? 'flex-end' : 'flex-start'}
-        maxWidth="80%"
-      >
-        {item.attachments?.map((attachment, index) => (
-          <Image
-            key={index}
-            source={{ uri: attachment.url }}
-            width={200}
-            height={200}
-            borderRadius="$2"
-            mb="$2"
-          />
-        ))}
-        <Paragraph>{item.content}</Paragraph>
-      </YStack>
-    )
-  }, [])
+  const renderMessage = useCallback(
+    ({ item }: { item: ChatMessage }) => (
+      <Message
+        content={item.content}
+        isUser={item.role === 'user'}
+        attachments={item.attachments}
+      />
+    ),
+    []
+  )
 
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={{ flex: 1 }}
-      keyboardVerticalOffset={8}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
     >
-      <YStack flex={1} pt={topSpacing}>
+      <YStack flex={1} background="$background" pt={topSpacing}>
         <XStack
           p="$4"
           background="$background"
@@ -136,18 +115,25 @@ export const ChatScreen = () => {
           />
         </XStack>
 
-        {/* TODO: Replace with performant FlashList */}
-        <FlatList
-          ref={flatListRef}
-          data={messages}
-          renderItem={renderMessage}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={{ flexGrow: 1 }}
-          onLayout={() => flatListRef.current?.scrollToEnd()}
-          keyboardDismissMode="interactive"
-          keyboardShouldPersistTaps="handled"
-          automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
-        />
+        <YStack flex={1} background="$background">
+          {/* TODO: Replace with performant FlashList */}
+          <FlatList
+            ref={flatListRef}
+            data={messages}
+            renderItem={renderMessage}
+            keyExtractor={(item) => item.id}
+            style={{ flex: 1 }}
+            contentContainerStyle={{
+              paddingBottom: 16,
+            }}
+            keyboardDismissMode="interactive"
+            keyboardShouldPersistTaps="handled"
+            automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
+            onContentSizeChange={() => {
+              flatListRef.current?.scrollToEnd({ animated: true })
+            }}
+          />
+        </YStack>
 
         <XStack
           p="$4"
@@ -156,29 +142,36 @@ export const ChatScreen = () => {
           background="$background"
           borderTopWidth={1}
           borderTopColor="$borderColor"
+          {...Platform.select({
+            web: {
+              position: 'sticky',
+              bottom: 0,
+            },
+            default: {},
+          })}
         >
           <Button
             icon={Camera}
             circular
             variant="outlined"
             onPress={handleAttachImage}
-            disabled={isStreaming}
+            disabled={isLoading}
           />
           <Input
             flex={1}
-            value={message}
-            onChangeText={setMessage}
+            value={input}
+            onChangeText={handleInputChange}
             placeholder="Type a message..."
             onSubmitEditing={handleSend}
-            editable={!isStreaming}
+            editable={!isLoading}
             autoCapitalize="none"
             returnKeyType="send"
             blurOnSubmit={false}
           />
           <Button
-            icon={isStreaming ? () => <Spinner /> : Send}
+            icon={isLoading ? () => <Spinner /> : Send}
             circular
-            disabled={!message.trim() || isStreaming}
+            disabled={!input.trim() || isLoading}
             onPress={handleSend}
           />
         </XStack>
@@ -203,7 +196,6 @@ export const ChatScreen = () => {
           />
           <Button
             onPress={() => {
-              setStoredApiKey(apiKey)
               setIsSettingsOpen(false)
               toast.success('API key saved')
             }}

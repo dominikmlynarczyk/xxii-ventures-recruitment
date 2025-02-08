@@ -6,10 +6,17 @@ import { useAuthStore } from '../auth/auth.store'
 import * as ImagePicker from 'expo-image-picker'
 import { useToast } from '../../hooks/use-toast'
 import { useSafeArea } from '../../provider/safe-area/use-safe-area'
+import { useShallow } from 'zustand/react/shallow'
 
 export function ProfileScreen() {
   const router = useRouter()
-  const { user, updateProfile, logout } = useAuthStore()
+  const { user, updateProfile, logout } = useAuthStore(
+    useShallow((state) => ({
+      user: state.user,
+      updateProfile: state.updateProfile,
+      logout: state.logout,
+    }))
+  )
   const [isEditing, setIsEditing] = useState(false)
   const [name, setName] = useState(user?.name ?? '')
   const { top, bottom } = useSafeArea()
