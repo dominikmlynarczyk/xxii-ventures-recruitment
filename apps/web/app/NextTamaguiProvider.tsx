@@ -5,8 +5,6 @@ import '@tamagui/font-inter/css/400.css'
 import '@tamagui/font-inter/css/700.css'
 import '@tamagui/polyfill-dev'
 
-import 'regenerator-runtime/runtime'
-
 import type { ReactNode } from 'react'
 import { StyleSheet } from 'react-native'
 import { useServerInsertedHTML } from 'next/navigation'
