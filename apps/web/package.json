@@ -22,12 +22,14 @@
     "react-native": "0.74.2",
     "react-native-web": "~0.19.12",
     "react-native-web-lite": "^1.112.4",
+    "regenerator-runtime": "^0.14.1",
     "tamagui": "^1.124.8",
     "vercel": "latest"
   },
   "devDependencies": {
     "@tamagui/next-plugin": "^1.124.8",
     "@types/node": "^20.14.1",
+    "@types/regenerator-runtime": "^0",
     "eslint-config-next": "^14.2.3",
     "next-compose-plugins": "^2.2.1",
     "next-transpile-modules": "^10.0.1",

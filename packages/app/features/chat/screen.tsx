@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { FlatList, Keyboard, Platform, KeyboardAvoidingView } from 'react-native'
 import { Button, H4, Input, Spinner, XStack, YStack, Sheet, SolitoImage } from '@xxii-ventures/ui'
-import { Camera, Send, Settings, X } from '@tamagui/lucide-icons'
+import { Camera, Mic, Send, Settings, X } from '@tamagui/lucide-icons'
 import { useToast } from '../../hooks/use-toast'
 import { useSafeArea } from '../../provider/safe-area/use-safe-area'
 import { useChat } from '@ai-sdk/react'
@@ -11,6 +11,7 @@ import { Message } from './message'
 import { usePersistedMessages, type ChatMessage } from './use-persisted-messages'
 import { useImagePicker, type ImageAttachment } from './use-image-picker'
 import { useMessagesDedupe } from './use-messages-dedupe'
+import { useSpeechRecognition } from './use-speech-recognition'
 
 export const ChatScreen = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
@@ -118,6 +119,10 @@ export const ChatScreen = () => {
     []
   )
 
+  const { isRecognizing, startRecognition, stopRecognition } = useSpeechRecognition({
+    onTranscript: handleInputChange,
+  })
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -134,12 +139,22 @@ export const ChatScreen = () => {
           items="center"
         >
           <H4>Chat</H4>
-          <Button
-            icon={Settings}
-            circular
-            variant="outlined"
-            onPress={() => setIsSettingsOpen(true)}
-          />
+          <XStack gap="$2">
+            <Button
+              icon={Mic}
+              circular
+              variant="outlined"
+              onPress={isRecognizing ? stopRecognition : startRecognition}
+              disabled={isLoading}
+              theme={isRecognizing ? 'red' : undefined}
+            />
+            <Button
+              icon={Settings}
+              circular
+              variant="outlined"
+              onPress={() => setIsSettingsOpen(true)}
+            />
+          </XStack>
         </XStack>
 
         <YStack flex={1} background="$background">
