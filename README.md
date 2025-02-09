@@ -35,21 +35,36 @@ yarn --version
   - Android Studio & Android SDK
   - Android Emulator or connected physical device
 
-> **OPEN AI API KEY**
->
-> Prepare the OpenAI API key. Without it in the app, you'll be getting the assistant's mocked messages.
+**Important**: The web app must be running to enable OpenAI API communication. The native app communicates with the OpenAI API through the web app's API routes.
 
-**Steps**:
+**Environment Setup**:
+1. Copy `.env.example` to `.env` in the `apps/web` directory
+2. Configure the following environment variables:
+   - `OPENAI_API_KEY`: Your OpenAI API key (required for AI chat functionality)
+   - `NEXT_PUBLIC_API_URL`: URL of your web app (default: http://localhost:3000)
 
-- Install dependencies: `yarn`
-- Native (through Expo) local dev: `yarn native`
-- Native prebuilt / development build, use `yarn native:rebuild`; platform specific commands:
-  -  iOS: `yarn ios`
-  - Android: `yarn android`
+Without the OpenAI API key, the app will fall back to mocked assistant messages.
 
-- Web local dev: `yarn web`
-  - To run with optimizer on in dev mode (just for testing, it's faster to leave it off): `yarn web:extract`. To build for production `yarn web:prod`.
+**Steps to Run**:
 
+1. Install dependencies: 
+```bash
+yarn
+```
+
+2. Start the web app (required for OpenAI API communication):
+```bash
+yarn web
+```
+
+3. Optional - Run native app:
+   - Local dev through Expo: `yarn native`
+   - Platform specific builds:
+     - iOS: `yarn ios`
+     - Android: `yarn android`
+   - Create development build: `yarn native:rebuild`
+
+For web production build with optimization: `yarn web:prod`
 
 ## 🛠️ Tech Stack
 
@@ -61,6 +76,12 @@ Key technologies used in the project:
 - 📱 **[Expo SDK](https://expo.dev)** - native app development
 - 🌐 **[Next.js](https://nextjs.org)** - web app development
 - 🚦 **[Expo Router](https://expo.dev/router)** - native routing with similar conventions to file-based routing from Next.js
+
+**Special Features**:
+- 🎤 **Speech-to-Text**: Implemented using Web Speech API for web and Voice Control API for iOS, enabling real-time voice input in the chat interface
+- 📝 **Markdown Formatting**: Utilizes react-markdown with remark-gfm plugin for rendering rich text content including code blocks and tables
+- 🤖 **AI Integration**: Uses Vercel AISDK with streaming responses for enhanced AI interactions
+- 🖼️ **Image Attachments**: Supports image uploads in chat messages `expo-image-picker` for native & web platforms
 
 ## 🗂 Application structure
 
