@@ -12,7 +12,8 @@ Recruitment task requirements can be found in **[REQUIREMENTS file](./REQUIREMEN
 
 ## 🎥 View Demo
 
-[Demonstration video]()
+- 🎙️ [Demonstration video](https://www.loom.com/share/ca55d2f28d7648ada3e10a9d390897f8?sid=fd7bdc24-e49e-4156-bd16-9d2564bb36d3)
+- 👷 [Codebase high level overview](https://www.loom.com/share/49608d4115084eb9935afa1bcc69ec76?sid=ecde4e9f-4fc5-459d-b651-9a431299094c)
 
 ## 🏁 Start the **app**
 **Prerequisites**:
